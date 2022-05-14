@@ -32,8 +32,7 @@ public class AnimClipCut {
 	static float _trimTimeStart = 0;
 	static float _trimTimeEnd = float.MaxValue;
 
-	const string AnimationOptimizeTag = "Assets/AnimationClip Cut By TimeRange";
-	[MenuItem(AnimationOptimizeTag, false, 64)]
+	[MenuItem("Assets/AnimationClip Cut By TimeRange", false, 64)]
 	public static void CutClipByTimeRange() {
 
 		string clipPath = null;
@@ -66,9 +65,6 @@ public class AnimClipCut {
 			window.titleContent = new GUIContent("Cut Animation Clip");
 			window.position = new Rect(Screen.width / 2, Screen.height / 2, 500, 300);
 			window.ShowModalUtility();
-
-			window.position = new Rect(Screen.width / 2, Screen.height / 2, 500, 300);
-			EditorUtility.SetDirty(window);
 		}
 	}
 

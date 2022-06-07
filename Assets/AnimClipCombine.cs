@@ -40,6 +40,10 @@ public class AnimClipCombine {
 				}
 			}
 
+			clipPaths.Sort(delegate(string a, string b) {
+				return string.Compare(a, b);
+			});
+
 		} while (false);
 
 		if (clipPaths.Count <= 1) {
@@ -87,7 +91,7 @@ public class AnimClipCombine {
 						for (int iii = 0; iii < curve.keys.Length; iii++) {
 							var key = curve.keys[iii];
 							key.time += timeOffset;
-							frames.Add(OptimizeKey(key));
+							frames.Add(key);
 						}
 
 						dict[curveKey] = frames;
@@ -115,20 +119,5 @@ public class AnimClipCombine {
 			AssetDatabase.CreateAsset(desClip, savepath);
 			AssetDatabase.ImportAsset(infopath);
 		}
-	}
-
-	static Keyframe OptimizeKey(Keyframe key) {
-		// Floating point precision compressed to f3
-		const string FloatFormatOptimize = "f3";
-
-		var ret = new Keyframe();
-		ret.time = key.time;
-		ret.value = float.Parse(key.value.ToString(FloatFormatOptimize));
-		ret.inTangent = float.Parse(key.inTangent.ToString(FloatFormatOptimize));
-		ret.outTangent = float.Parse(key.outTangent.ToString(FloatFormatOptimize));
-		ret.inWeight = key.inWeight;
-		ret.outWeight = key.outWeight;
-		ret.weightedMode = key.weightedMode;
-		return ret;
 	}
 }

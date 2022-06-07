@@ -68,25 +68,6 @@ public class AnimClipCut {
 		}
 	}
 
-	public static void CutTheClip() {
-		TrimAnimCLip();
-	}
-
-	static Keyframe OptimizeKey(Keyframe key) {
-		// Floating point precision compressed to f3
-		const string FloatFormatOptimize = "f3";
-
-		var ret = new Keyframe();
-		ret.time = key.time;
-		ret.value = float.Parse(key.value.ToString(FloatFormatOptimize));
-		ret.inTangent = float.Parse(key.inTangent.ToString(FloatFormatOptimize));
-		ret.outTangent = float.Parse(key.outTangent.ToString(FloatFormatOptimize));
-		ret.inWeight = key.inWeight;
-		ret.outWeight = key.outWeight;
-		ret.weightedMode = key.weightedMode;
-		return ret;
-	}
-
 	static Keyframe ProcessValue(Keyframe before, Keyframe after, float time) {
 		var len = after.time - before.time;
 		var pass = time - before.time;
@@ -94,7 +75,7 @@ public class AnimClipCut {
 		return new Keyframe(time, value);
 	}
 
-	static void TrimAnimCLip() {
+	static void CutTheClip() {
 
 		AnimationClip sourceClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(_clipPath);
 
@@ -129,7 +110,7 @@ public class AnimClipCut {
 				for (int i = 0; i < frames.Count; i++) {
 					EditorUtility.DisplayProgressBar("Working On Clip", "Curves " + ii + "/" + bindings.Length + " ... Keyframes " + i + "/" + frames.Count, (float)ii / bindings.Length);
 
-					var key = OptimizeKey(frames[i]);
+					var key = frames[i];
 
 					if (key.time < _trimTimeStart) {
 						last = key;
@@ -142,7 +123,7 @@ public class AnimClipCut {
 							if (last == null)
 								last = key;
 							var startKey = ProcessValue(last.Value, key, _trimTimeStart);
-							desframes.Add(OptimizeKey(startKey));
+							desframes.Add(startKey);
 						}
 					}
 
@@ -158,7 +139,7 @@ public class AnimClipCut {
 						if (last == null)
 							last = key;
 						var endKey = ProcessValue(last.Value, key, _trimTimeEnd);
-						desframes.Add(OptimizeKey(endKey));
+						desframes.Add(endKey);
 						break;
 					}
 				}

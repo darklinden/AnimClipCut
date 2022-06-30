@@ -51,7 +51,11 @@ public class AnimClipExchangeWhiteSpace {
 					for (int ii = 0; ii < bindings.Length; ++ii) {
 						var binding = bindings[ii];
 						var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
-						desClip.SetCurve(binding.path.Replace(' ', '_'), binding.type, binding.propertyName, curve);
+						var path = binding.path;
+						path = path.Replace("(", "_");
+						path = path.Replace(")", "_");
+						path = path.Replace(' ', '_');
+						desClip.SetCurve(path, binding.type, binding.propertyName, curve);
 					}
 				}
 

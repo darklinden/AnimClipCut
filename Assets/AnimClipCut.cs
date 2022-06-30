@@ -146,7 +146,9 @@ public class AnimClipCut {
 				desClip.SetCurve(binding.path, binding.type, binding.propertyName, new AnimationCurve(desframes.ToArray()));
 			}
 
-			AssetDatabase.CreateAsset(desClip, _clipPath + "_" + _trimTimeStart + "_" + _trimTimeEnd + ".anim");
+			string savepath = Path.Combine(Path.GetDirectoryName(_clipPath), Path.GetFileNameWithoutExtension(_clipPath) + "_" + _trimTimeStart + "_" + _trimTimeEnd + ".anim");
+
+			AssetDatabase.CreateAsset(desClip, savepath);
 			EditorUtility.ClearProgressBar();
 		}
 	}

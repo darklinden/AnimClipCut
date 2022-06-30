@@ -109,8 +109,11 @@ public class AnimClipCombine {
 			}
 
 			int stamp = (int)Time.realtimeSinceStartup;
-			string savepath = clipPaths[0] + "_Combined_" + clipPaths.Count + "_" + stamp + ".anim";
-			string infopath = clipPaths[0] + "_Combined_" + clipPaths.Count + "_" + stamp + ".txt";
+
+			string remoteClipPath = Path.Combine(Path.GetDirectoryName(clipPaths[0]), Path.GetFileNameWithoutExtension(clipPaths[0]));
+
+			string savepath = remoteClipPath + "_Combined_" + clipPaths.Count + "_" + stamp + ".anim";
+			string infopath = remoteClipPath + "_Combined_" + clipPaths.Count + "_" + stamp + ".txt";
 
 			StreamWriter writer = new StreamWriter(infopath, true);
 			writer.WriteLine(desInfo);

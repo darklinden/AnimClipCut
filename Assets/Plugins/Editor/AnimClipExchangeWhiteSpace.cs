@@ -5,11 +5,6 @@ using System.IO;
 
 public class AnimClipExchangeWhiteSpace {
 
-	static string _clipPath = null;
-	static float _clipLen = float.MaxValue;
-	static float _trimTimeStart = 0;
-	static float _trimTimeEnd = float.MaxValue;
-
 	[MenuItem("Assets/AnimationClip Exchange White Space", false, 64)]
 	public static void ExchangeClipPathWhiteSpace() {
 

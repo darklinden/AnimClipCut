@@ -2,25 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
-using System.Runtime.CompilerServices;
 
 public class AnimClipCombine {
-
-	class CurveKey {
-		public string path;
-		public System.Type type;
-		public string propertyName;
-	}
-
-	struct CurveKeyComparer : IEqualityComparer<CurveKey> {
-		public bool Equals(CurveKey x, CurveKey y) {
-			return string.Equals(x.path, y.path) && string.Equals(x.propertyName, y.propertyName) && System.Type.Equals(x.type, y.type);
-		}
-
-		public int GetHashCode(CurveKey obj) {
-			return (obj.path + " --- " + obj.propertyName).GetHashCode();
-		}
-	}
 
 	[MenuItem("Assets/AnimationClip Combine", false, 64)]
 	public static void CombineClipByTimeRange() {
@@ -59,7 +42,7 @@ public class AnimClipCombine {
 
 			string desInfo = "";
 
-			Dictionary<CurveKey, List<Keyframe>> dict = new Dictionary<CurveKey, List<Keyframe>>(default(CurveKeyComparer));
+			Dictionary<AnimClipCurveKey, List<Keyframe>> dict = new Dictionary<AnimClipCurveKey, List<Keyframe>>(default(AnimClipCurveKey.Comparer));
 
 			float timeOffset = 0;
 			for (int i = 0; i < clipPaths.Count; i++) {
@@ -77,7 +60,7 @@ public class AnimClipCombine {
 							continue;
 						}
 
-						var curveKey = new CurveKey {
+						var curveKey = new AnimClipCurveKey {
 							path = binding.path,
 							type = binding.type,
 							propertyName = binding.propertyName

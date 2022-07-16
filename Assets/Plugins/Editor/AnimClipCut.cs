@@ -91,6 +91,9 @@ public class AnimClipCut {
 
 		var bindings = AnimationUtility.GetCurveBindings(sourceClip);
 		if (bindings != null && bindings.Length > 0) {
+
+			Dictionary<AnimClipCurveKey, List<Keyframe>> dict = new Dictionary<AnimClipCurveKey, List<Keyframe>>(default(AnimClipCurveKey.Comparer));
+
 			for (int ii = 0; ii < bindings.Length; ++ii) {
 				var binding = bindings[ii];
 				var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
@@ -99,17 +102,41 @@ public class AnimClipCut {
 					continue;
 				}
 
-				var frames = new List<Keyframe>();
-				frames.AddRange(curve.keys);
+				var curveKey = new AnimClipCurveKey {
+					path = binding.path,
+					type = binding.type,
+					propertyName = binding.propertyName
+				};
+
+				List<Keyframe> frames;
+				if (!dict.TryGetValue(curveKey, out frames)) {
+					frames = new List<Keyframe>();
+				}
+
+				for (int iii = 0; iii < curve.keys.Length; iii++) {
+					var key = curve.keys[iii];
+					frames.Add(key);
+				}
+
+				dict[curveKey] = frames;
+			}
+
+			foreach (var pair in dict) {
+				var curveKey = pair.Key;
+				var frames = pair.Value;
 				frames.Sort(delegate(Keyframe a, Keyframe b) {
-					return a.time < b.time ? -1 : 1;
+					return a.time - b.time < 0 ? -1 : 1;
 				});
 
 				var desframes = new List<Keyframe>();
 				Keyframe? last = null;
-				for (int i = 0; i < frames.Count; i++) {
-					EditorUtility.DisplayProgressBar("Working On Clip", "Curves " + ii + "/" + bindings.Length + " ... Keyframes " + i + "/" + frames.Count, (float)ii / bindings.Length);
 
+				if (frames[0].time != 0) {
+					last = new Keyframe(0, frames[0].value);
+					desframes.Add(last.Value);
+				}
+
+				for (int i = 0; i < frames.Count; i++) {
 					var key = frames[i];
 
 					if (key.time < _trimTimeStart) {
@@ -143,7 +170,13 @@ public class AnimClipCut {
 						break;
 					}
 				}
-				desClip.SetCurve(binding.path, binding.type, binding.propertyName, new AnimationCurve(desframes.ToArray()));
+
+				if (frames[frames.Count - 1].time != sourceClip.length) {
+					last = new Keyframe(sourceClip.length, frames[frames.Count - 1].value);
+					desframes.Add(last.Value);
+				}
+
+				desClip.SetCurve(curveKey.path, curveKey.type, curveKey.propertyName, new AnimationCurve(desframes.ToArray()));
 			}
 
 			string savepath = Path.Combine(Path.GetDirectoryName(_clipPath), Path.GetFileNameWithoutExtension(_clipPath) + "_" + _trimTimeStart + "_" + _trimTimeEnd + ".anim");

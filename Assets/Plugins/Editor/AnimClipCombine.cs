@@ -61,7 +61,7 @@ public class AnimClipCombine {
 
 			Dictionary<CurveKey, List<Keyframe>> dict = new Dictionary<CurveKey, List<Keyframe>>(default(CurveKeyComparer));
 
-			float timeOffset = (float)1 / clip.frameRate;
+			float timeOffset = 0;
 			for (int i = 0; i < clipPaths.Count; i++) {
 				var sourceClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPaths[i]);
 
@@ -99,7 +99,7 @@ public class AnimClipCombine {
 				}
 
 				timeOffset += sourceClip.length;
-				timeOffset += (float)1 / clip.frameRate;
+				timeOffset += 1.0f / clip.frameRate;
 			}
 
 			foreach (var pair in dict) {

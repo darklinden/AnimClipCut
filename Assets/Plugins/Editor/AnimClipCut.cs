@@ -171,8 +171,9 @@ public class AnimClipCut {
 					}
 				}
 
-				if (frames[frames.Count - 1].time != sourceClip.length) {
-					last = new Keyframe(sourceClip.length, frames[frames.Count - 1].value);
+				var timeEnd = Mathf.Min(sourceClip.length, _trimTimeEnd);
+				if (frames[frames.Count - 1].time != timeEnd) {
+					last = new Keyframe(timeEnd, frames[frames.Count - 1].value);
 					desframes.Add(last.Value);
 				}
 

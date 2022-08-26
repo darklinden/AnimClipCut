@@ -1,0 +1,10 @@
+/*
+
+!/Assets
+/Assets/*
+
+!/Assets/Plugins
+!/Assets/Plugins/*
+
+.DS_Store
+!.gitignore

@@ -133,12 +133,12 @@ public class AnimClipCutFbxOfCreator {
 					return a.time - b.time < 0 ? -1 : 1;
 				});
 
-				var desframes = new List<Keyframe>();
+				var timeRangeFrames = new List<Keyframe>();
 				Keyframe? last = null;
 
 				if (frames[0].time != 0) {
 					last = new Keyframe(0, frames[0].value);
-					desframes.Add(last.Value);
+					frames.Insert(0, last.Value);
 				}
 
 				for (int i = 0; i < frames.Count; i++) {
@@ -150,19 +150,19 @@ public class AnimClipCutFbxOfCreator {
 					}
 
 					if (key.time >= trimTimeStart) {
-						if (desframes.Count == 0) {
+						if (timeRangeFrames.Count == 0) {
 							// use last to create the start key
 							if (last == null)
 								last = key;
 							var startKey = ProcessValue(last.Value, key, trimTimeStart);
-							desframes.Add(startKey);
+							timeRangeFrames.Add(startKey);
 						}
 					}
 
-					if (desframes.Count > 0) {
+					if (timeRangeFrames.Count > 0) {
 						if (key.time >= trimTimeStart && key.time < trimTimeEnd) {
 							last = key;
-							desframes.Add(key);
+							timeRangeFrames.Add(key);
 							continue;
 						}
 					}
@@ -171,7 +171,7 @@ public class AnimClipCutFbxOfCreator {
 						if (last == null)
 							last = key;
 						var endKey = ProcessValue(last.Value, key, trimTimeEnd);
-						desframes.Add(endKey);
+						timeRangeFrames.Add(endKey);
 						break;
 					}
 				}
@@ -179,7 +179,14 @@ public class AnimClipCutFbxOfCreator {
 				var timeEnd = Mathf.Min(sourceClip.length, trimTimeEnd);
 				if (frames[frames.Count - 1].time != timeEnd) {
 					last = new Keyframe(timeEnd, frames[frames.Count - 1].value);
-					desframes.Add(last.Value);
+					timeRangeFrames.Add(last.Value);
+				}
+
+				var desframes = new List<Keyframe>();
+				for (var i = 0; i < timeRangeFrames.Count; i++) {
+					var f = timeRangeFrames[i];
+					f.time = Mathf.Clamp(f.time - trimTimeStart, 0, trimTimeEnd - trimTimeStart);
+					desframes.Add(f);
 				}
 
 				desClip.SetCurve(curveKey.path, curveKey.type, curveKey.propertyName, new AnimationCurve(desframes.ToArray()));

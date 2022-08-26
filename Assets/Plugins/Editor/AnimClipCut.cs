@@ -28,6 +28,7 @@ public class AnimClipCut {
 	}
 
 	static string _clipPath = null;
+	static AnimationClip _clip = null;
 	static float _clipLen = float.MaxValue;
 	static float _trimTimeStart = 0;
 	static float _trimTimeEnd = float.MaxValue;
@@ -53,11 +54,11 @@ public class AnimClipCut {
 		if (string.IsNullOrEmpty(clipPath)) {
 			EditorUtility.DisplayDialog("Error", "Please Select One Single Animation Clip!", "Ok");
 		} else {
-			AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
 
 			_clipPath = clipPath;
+			_clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
 			_trimTimeStart = 0;
-			_clipLen = clip.length;
+			_clipLen = _clip.length;
 			_trimTimeEnd = _clipLen;
 
 			// show alert
@@ -76,8 +77,15 @@ public class AnimClipCut {
 	}
 
 	static void CutTheClip() {
+		string savepath = Path.Combine(Path.GetDirectoryName(_clipPath), Path.GetFileNameWithoutExtension(_clipPath) + "_" + _trimTimeStart + "_" + _trimTimeEnd + ".anim");
 
-		AnimationClip sourceClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(_clipPath);
+		CutTheClip(_clip,
+		           _trimTimeStart,
+		           _trimTimeEnd,
+		           savepath);
+	}
+
+	static void CutTheClip(AnimationClip sourceClip, float trimTimeStart, float trimTimeEnd, string savepath) {
 
 		if (sourceClip == null) {
 			EditorUtility.DisplayDialog("Error", "Open Animation Clip Failed!", "Ok");
@@ -128,59 +136,64 @@ public class AnimClipCut {
 					return a.time - b.time < 0 ? -1 : 1;
 				});
 
-				var desframes = new List<Keyframe>();
+				var timeRangeFrames = new List<Keyframe>();
 				Keyframe? last = null;
 
 				if (frames[0].time != 0) {
 					last = new Keyframe(0, frames[0].value);
-					desframes.Add(last.Value);
+					frames.Insert(0, last.Value);
 				}
 
 				for (int i = 0; i < frames.Count; i++) {
 					var key = frames[i];
 
-					if (key.time < _trimTimeStart) {
+					if (key.time < trimTimeStart) {
 						last = key;
 						continue;
 					}
 
-					if (key.time >= _trimTimeStart) {
-						if (desframes.Count == 0) {
+					if (key.time >= trimTimeStart) {
+						if (timeRangeFrames.Count == 0) {
 							// use last to create the start key
 							if (last == null)
 								last = key;
-							var startKey = ProcessValue(last.Value, key, _trimTimeStart);
-							desframes.Add(startKey);
+							var startKey = ProcessValue(last.Value, key, trimTimeStart);
+							timeRangeFrames.Add(startKey);
 						}
 					}
 
-					if (desframes.Count > 0) {
-						if (key.time >= _trimTimeStart && key.time < _trimTimeEnd) {
+					if (timeRangeFrames.Count > 0) {
+						if (key.time >= trimTimeStart && key.time < trimTimeEnd) {
 							last = key;
-							desframes.Add(key);
+							timeRangeFrames.Add(key);
 							continue;
 						}
 					}
 
-					if (key.time >= _trimTimeEnd) {
+					if (key.time >= trimTimeEnd) {
 						if (last == null)
 							last = key;
-						var endKey = ProcessValue(last.Value, key, _trimTimeEnd);
-						desframes.Add(endKey);
+						var endKey = ProcessValue(last.Value, key, trimTimeEnd);
+						timeRangeFrames.Add(endKey);
 						break;
 					}
 				}
 
-				var timeEnd = Mathf.Min(sourceClip.length, _trimTimeEnd);
+				var timeEnd = Mathf.Min(sourceClip.length, trimTimeEnd);
 				if (frames[frames.Count - 1].time != timeEnd) {
 					last = new Keyframe(timeEnd, frames[frames.Count - 1].value);
-					desframes.Add(last.Value);
+					timeRangeFrames.Add(last.Value);
+				}
+
+				var desframes = new List<Keyframe>();
+				for (var i = 0; i < timeRangeFrames.Count; i++) {
+					var f = timeRangeFrames[i];
+					f.time = Mathf.Clamp(f.time - trimTimeStart, 0, trimTimeEnd - trimTimeStart);
+					desframes.Add(f);
 				}
 
 				desClip.SetCurve(curveKey.path, curveKey.type, curveKey.propertyName, new AnimationCurve(desframes.ToArray()));
 			}
-
-			string savepath = Path.Combine(Path.GetDirectoryName(_clipPath), Path.GetFileNameWithoutExtension(_clipPath) + "_" + _trimTimeStart + "_" + _trimTimeEnd + ".anim");
 
 			AssetDatabase.CreateAsset(desClip, savepath);
 			EditorUtility.ClearProgressBar();

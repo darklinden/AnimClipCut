@@ -6,5 +6,8 @@
 !/Assets/Plugins
 !/Assets/Plugins/*
 
+!/Packages
+!/Packages/*
+
 .DS_Store
 !.gitignore

@@ -3,7 +3,7 @@ using UnityEditor;
 using System.Collections.Generic;
 using UnityEditor.Animations;
 
-public class SampleClipTool : EditorWindow
+public class SampleClipByFrame : EditorWindow
 {
     public GameObject SelectionGo;
     public List<GameObject> AnimGameObjects = new List<GameObject>();
@@ -18,16 +18,17 @@ public class SampleClipTool : EditorWindow
     private AnimationClip SelectedAnimClip;
     private int CurrentFrame = 0;
 
-    [MenuItem("Tool/SampleClip", false, 2000)]
-    public static void DoWindow()
+    [MenuItem("Tools/SampleClipByFrame", false, 2000)]
+    static void ShowWindow()
     {
-        GetWindow<SampleClipTool>();
+        var window = CreateInstance<SampleClipByFrame>();
+        window.Show();
     }
 
     public void OnGUI()
     {
         var selectionGo = Selection.activeGameObject;
-        if (selectionGo == null)
+        if (selectionGo == null && SelectionGo == null)
         {
             EditorGUILayout.HelpBox("Please select a GO", MessageType.Info);
             return;
@@ -35,7 +36,13 @@ public class SampleClipTool : EditorWindow
 
         GUILayout.BeginVertical();
 
-        if (GUILayout.Button("Use Selected GameObject", EditorStyles.miniButtonLeft))
+        var btnclicked = (GUILayout.Button("Use Selected GameObject", EditorStyles.miniButtonLeft, new[] { GUILayout.Height(20), GUILayout.Width(200) }));
+        var selectedGo = (GameObject)EditorGUILayout.ObjectField(SelectionGo, typeof(GameObject), true);
+
+        var shouldRefresh = btnclicked || (selectionGo != null && selectedGo != SelectionGo);
+        if (selectionGo != null && selectedGo != SelectionGo) selectionGo = selectedGo;
+
+        if (shouldRefresh)
         {
             AnimGameObjects.Clear();
             AnimGameObjectNames.Clear();
@@ -78,40 +85,42 @@ public class SampleClipTool : EditorWindow
             }
         }
 
-        EditorGUILayout.ObjectField(SelectionGo, typeof(GameObject), true);
-
-        SelectedAnimGoIndex = EditorGUILayout.Popup("GameObject", SelectedAnimGoIndex, AnimGameObjectNames.ToArray(), new[] { GUILayout.Height(20), GUILayout.Width(400) });
-
-        if (SelectedAnimGoIndex != LastSelectedAnimGoIndex)
+        if (SelectionGo != null)
         {
-            LastSelectedAnimGoIndex = SelectedAnimGoIndex;
-            SelectedAnimGo = AnimGameObjects[SelectedAnimGoIndex];
-            SelectedAnimClipNames.Clear();
-            foreach (var clip in AnimGameObjectsClips[SelectedAnimGo])
+            SelectedAnimGoIndex = EditorGUILayout.Popup("GameObject", SelectedAnimGoIndex, AnimGameObjectNames.ToArray(), new[] { GUILayout.Height(20), GUILayout.Width(400) });
+
+            if (SelectedAnimGoIndex != LastSelectedAnimGoIndex)
             {
-                SelectedAnimClipNames.Add(clip.name);
+                LastSelectedAnimGoIndex = SelectedAnimGoIndex;
+                SelectedAnimGo = AnimGameObjects[SelectedAnimGoIndex];
+                SelectedAnimClipNames.Clear();
+                foreach (var clip in AnimGameObjectsClips[SelectedAnimGo])
+                {
+                    SelectedAnimClipNames.Add(clip.name);
+                }
+                SelectedAnimClipIndex = 0;
+                LastSelectedAnimClipIndex = -1;
             }
-            SelectedAnimClipIndex = 0;
-            LastSelectedAnimClipIndex = -1;
+
+            SelectedAnimClipIndex = EditorGUILayout.Popup("Animations", SelectedAnimClipIndex, SelectedAnimClipNames.ToArray(), new[] { GUILayout.Height(20), GUILayout.Width(400) });
+
+            if (SelectedAnimClipIndex != LastSelectedAnimClipIndex)
+            {
+                LastSelectedAnimClipIndex = SelectedAnimClipIndex;
+                SelectedAnimClip = AnimGameObjectsClips[AnimGameObjects[SelectedAnimGoIndex]][SelectedAnimClipIndex];
+                CurrentFrame = 0;
+            }
+
+            if (SelectedAnimClip != null)
+            {
+                int startFrame = 0;
+                int stopFrame = Mathf.RoundToInt(SelectedAnimClip.length * SelectedAnimClip.frameRate);
+                CurrentFrame = Mathf.RoundToInt(EditorGUILayout.Slider(CurrentFrame, startFrame, stopFrame));
+
+                SelectedAnimClip.SampleAnimation(SelectedAnimGo, CurrentFrame / SelectedAnimClip.frameRate);
+            }
         }
 
-        SelectedAnimClipIndex = EditorGUILayout.Popup("Animations", SelectedAnimClipIndex, SelectedAnimClipNames.ToArray(), new[] { GUILayout.Height(20), GUILayout.Width(400) });
-
-        if (SelectedAnimClipIndex != LastSelectedAnimClipIndex)
-        {
-            LastSelectedAnimClipIndex = SelectedAnimClipIndex;
-            SelectedAnimClip = AnimGameObjectsClips[AnimGameObjects[SelectedAnimGoIndex]][SelectedAnimClipIndex];
-            CurrentFrame = 0;
-        }
-
-        if (SelectedAnimClip != null)
-        {
-            int startFrame = 0;
-            int stopFrame = Mathf.RoundToInt(SelectedAnimClip.length * SelectedAnimClip.frameRate);
-            CurrentFrame = Mathf.RoundToInt(EditorGUILayout.Slider(CurrentFrame, startFrame, stopFrame));
-
-            SelectedAnimClip.SampleAnimation(SelectedAnimGo, CurrentFrame / SelectedAnimClip.frameRate);
-        }
 
         EditorGUILayout.EndVertical();
     }

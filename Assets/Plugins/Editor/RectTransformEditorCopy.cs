@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -10,7 +11,7 @@ public class RectTransformEditorCopy : Editor
 {
     const float PrefixLabelWidth = 90f;
     static public Editor instance;
-    RectTransform m_Transform;
+    readonly List<RectTransform> m_TransformList = new();
 
     private bool extensionBool;
 
@@ -24,7 +25,7 @@ public class RectTransformEditorCopy : Editor
         var editorType = Assembly.GetAssembly(typeof(Editor)).GetType("UnityEditor.RectTransformEditor");
         if (editorType == null)
         {
-            Debug.LogError("找不到RectTransformInspector类！");
+            Debug.LogError("Can't find RectTransformEditor");
             return;
         }
 
@@ -32,22 +33,17 @@ public class RectTransformEditorCopy : Editor
         isLocal = EditorPrefs.GetBool("RectTransformEditorCopy.isLocal");
         extensionBool = EditorPrefs.GetBool("RectTransformEditorCopy.extensionBool");
 
-        m_Transform = this.target as RectTransform;
-
-        if (this)
+        m_TransformList.Clear();
+        foreach (var item in targets)
         {
-            try
-            {
-                var so = serializedObject;
-            }
-            catch { }
+            m_TransformList.Add(item as RectTransform);
         }
     }
 
     private void OnDisable()
     {
-        EditorPrefs.SetBool("isLocal", isLocal);
-        EditorPrefs.SetBool("extensionBool", extensionBool);
+        EditorPrefs.SetBool("RectTransformEditorCopy.isLocal", isLocal);
+        EditorPrefs.SetBool("RectTransformEditorCopy.extensionBool", extensionBool);
     }
 
     public override void OnInspectorGUI()
@@ -56,7 +52,7 @@ public class RectTransformEditorCopy : Editor
 
         // begin detect change
         EditorGUI.BeginChangeCheck();
-        var extensionExpand = EditorGUILayout.Foldout(extensionBool, "拓展功能");
+        var extensionExpand = EditorGUILayout.Foldout(extensionBool, "Copy & Paste");
         if (EditorGUI.EndChangeCheck())
         {
             extensionBool = extensionExpand;
@@ -94,7 +90,7 @@ public class RectTransformEditorCopy : Editor
         }
 
         axisName = isLocal ? "Local" : "Global";
-        GUILayout.Label("当前坐标轴：" + axisName);
+        GUILayout.Label("Current Space: " + axisName);
         EditorGUILayout.EndHorizontal();
     }
 
@@ -107,27 +103,29 @@ public class RectTransformEditorCopy : Editor
             var select = Selection.activeGameObject;
             if (select == null)
                 return;
-            StringBuilder s = new StringBuilder();
+            var rt = select.GetComponent<RectTransform>();
+            StringBuilder s = new();
+
             s.Append("RectTransform_");
-            s.Append(FormatVe2(m_Transform.anchorMin));
+            s.Append(FormatVe2(rt.anchorMin));
             s.Append("|");
-            s.Append(FormatVe2(m_Transform.anchorMax));
+            s.Append(FormatVe2(rt.anchorMax));
             s.Append("|");
-            s.Append(FormatVe2(m_Transform.pivot));
+            s.Append(FormatVe2(rt.pivot));
             s.Append("|");
-            s.Append(FormatVe2(m_Transform.sizeDelta));
+            s.Append(FormatVe2(rt.sizeDelta));
             s.Append("_");
             if (isLocal)
             {
-                s.Append(FormatVe3(m_Transform.localPosition) + "_");
-                s.Append(FormatVe3(m_Transform.localRotation.eulerAngles) + "_");
-                s.Append(FormatVe3(m_Transform.localScale));
+                s.Append(FormatVe3(rt.localPosition) + "_");
+                s.Append(FormatVe3(rt.localRotation.eulerAngles) + "_");
+                s.Append(FormatVe3(rt.localScale));
             }
             else
             {
-                s.Append(FormatVe3(m_Transform.position) + "_");
-                s.Append(FormatVe3(m_Transform.rotation.eulerAngles) + "_");
-                s.Append(FormatVe3(m_Transform.localScale));
+                s.Append(FormatVe3(rt.position) + "_");
+                s.Append(FormatVe3(rt.rotation.eulerAngles) + "_");
+                s.Append(FormatVe3(rt.localScale));
             }
             UnityEngine.GUIUtility.systemCopyBuffer = s.ToString();
         }
@@ -137,28 +135,31 @@ public class RectTransformEditorCopy : Editor
             string[] sArr = s.Split('_');
             if (sArr[0] != "RectTransform" || s == "")
             {
-                Debug.LogError("未复制RectTransform组件内容！");
+                Debug.LogError("Data is not RectTransform!");
                 return;
             }
             try
             {
-                var anchor = sArr[1].Split('|');
-                m_Transform.anchorMin = ParseV2(anchor[0]);
-                m_Transform.anchorMax = ParseV2(anchor[1]);
-                m_Transform.pivot = ParseV2(anchor[2]);
-                m_Transform.sizeDelta = ParseV2(anchor[3]);
+                foreach (var item in m_TransformList)
+                {
+                    var anchor = sArr[1].Split('|');
+                    item.anchorMin = ParseV2(anchor[0]);
+                    item.anchorMax = ParseV2(anchor[1]);
+                    item.pivot = ParseV2(anchor[2]);
+                    item.sizeDelta = ParseV2(anchor[3]);
 
-                if (isLocal)
-                {
-                    m_Transform.localPosition = ParseV3(sArr[2]);
-                    m_Transform.localRotation = Quaternion.Euler(ParseV3(sArr[3]));
-                    m_Transform.localScale = ParseV3(sArr[4]);
-                }
-                else
-                {
-                    m_Transform.position = ParseV3(sArr[2]);
-                    m_Transform.rotation = Quaternion.Euler(ParseV3(sArr[3]));
-                    m_Transform.localScale = ParseV3(sArr[4]);
+                    if (isLocal)
+                    {
+                        item.localPosition = ParseV3(sArr[2]);
+                        item.localRotation = Quaternion.Euler(ParseV3(sArr[3]));
+                        item.localScale = ParseV3(sArr[4]);
+                    }
+                    else
+                    {
+                        item.position = ParseV3(sArr[2]);
+                        item.rotation = Quaternion.Euler(ParseV3(sArr[3]));
+                        item.localScale = ParseV3(sArr[4]);
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -169,17 +170,24 @@ public class RectTransformEditorCopy : Editor
         }
         if (GUILayout.Button("Reset"))
         {
-            if (isLocal)
+            foreach (var item in m_TransformList)
             {
-                m_Transform.localPosition = Vector3.zero;
-                m_Transform.localRotation = Quaternion.identity;
-                m_Transform.localScale = Vector3.one;
-            }
-            else
-            {
-                m_Transform.position = Vector3.zero;
-                m_Transform.rotation = Quaternion.identity;
-                m_Transform.localScale = Vector3.one;
+                item.anchorMin = new Vector2(0.5f, 0.5f);
+                item.anchorMax = new Vector2(0.5f, 0.5f);
+                item.pivot = new Vector2(0.5f, 0.5f);
+                item.sizeDelta = Vector2.one * 100;
+                if (isLocal)
+                {
+                    item.localPosition = Vector3.zero;
+                    item.localRotation = Quaternion.identity;
+                    item.localScale = Vector3.one;
+                }
+                else
+                {
+                    item.position = Vector3.zero;
+                    item.rotation = Quaternion.identity;
+                    item.localScale = Vector3.one;
+                }
             }
         }
         EditorGUILayout.EndHorizontal();
@@ -194,14 +202,15 @@ public class RectTransformEditorCopy : Editor
             var select = Selection.activeGameObject;
             if (select == null)
                 return;
-            StringBuilder s = new StringBuilder();
-            s.Append(FormatVe2(m_Transform.anchorMin));
+            var rt = select.GetComponent<RectTransform>();
+            StringBuilder s = new();
+            s.Append(FormatVe2(rt.anchorMin));
             s.Append("|");
-            s.Append(FormatVe2(m_Transform.anchorMax));
+            s.Append(FormatVe2(rt.anchorMax));
             s.Append("|");
-            s.Append(FormatVe2(m_Transform.pivot));
+            s.Append(FormatVe2(rt.pivot));
             s.Append("|");
-            s.Append(FormatVe2(m_Transform.sizeDelta));
+            s.Append(FormatVe2(rt.sizeDelta));
             UnityEngine.GUIUtility.systemCopyBuffer = s.ToString();
             Debug.Log(s);
         }
@@ -211,16 +220,19 @@ public class RectTransformEditorCopy : Editor
             string s = UnityEngine.GUIUtility.systemCopyBuffer;
             if (s == "")
             {
-                Debug.LogError("未复制Anchor内容！");
+                Debug.LogError("Data is not Anchor!");
                 return;
             }
             try
             {
                 string[] sArr = s.Split('|');
-                m_Transform.anchorMin = ParseV2(sArr[0]);
-                m_Transform.anchorMax = ParseV2(sArr[1]);
-                m_Transform.pivot = ParseV2(sArr[2]);
-                m_Transform.sizeDelta = ParseV2(sArr[3]);
+                foreach (var item in m_TransformList)
+                {
+                    item.anchorMin = ParseV2(sArr[0]);
+                    item.anchorMax = ParseV2(sArr[1]);
+                    item.pivot = ParseV2(sArr[2]);
+                    item.sizeDelta = ParseV2(sArr[3]);
+                }
             }
             catch (System.Exception ex)
             {
@@ -230,10 +242,13 @@ public class RectTransformEditorCopy : Editor
         }
         if (GUILayout.Button("Reset"))
         {
-            m_Transform.anchorMin = new Vector2(0.5f, 0.5f);
-            m_Transform.anchorMax = new Vector2(0.5f, 0.5f);
-            m_Transform.pivot = new Vector2(0.5f, 0.5f);
-            m_Transform.sizeDelta = Vector2.one * 100;
+            foreach (var item in m_TransformList)
+            {
+                item.anchorMin = new Vector2(0.5f, 0.5f);
+                item.anchorMax = new Vector2(0.5f, 0.5f);
+                item.pivot = new Vector2(0.5f, 0.5f);
+                item.sizeDelta = Vector2.one * 100;
+            }
         }
         EditorGUILayout.EndHorizontal();
     }
@@ -247,14 +262,15 @@ public class RectTransformEditorCopy : Editor
             var select = Selection.activeGameObject;
             if (select == null)
                 return;
-            StringBuilder s = new StringBuilder();
+            var rt = select.GetComponent<RectTransform>();
+            StringBuilder s = new();
             if (isLocal)
             {
-                s.Append(FormatVe3(m_Transform.localPosition));
+                s.Append(FormatVe3(rt.localPosition));
             }
             else
             {
-                s.Append(FormatVe3(m_Transform.position));
+                s.Append(FormatVe3(rt.position));
             }
             UnityEngine.GUIUtility.systemCopyBuffer = s.ToString();
             Debug.Log(s);
@@ -264,18 +280,21 @@ public class RectTransformEditorCopy : Editor
             string s = UnityEngine.GUIUtility.systemCopyBuffer;
             if (s == "")
             {
-                Debug.LogError("未复制Position内容！");
+                Debug.LogError("Data is not Position!");
                 return;
             }
             try
             {
-                if (isLocal)
+                foreach (var item in m_TransformList)
                 {
-                    m_Transform.localPosition = ParseV3(s);
-                }
-                else
-                {
-                    m_Transform.position = ParseV3(s);
+                    if (isLocal)
+                    {
+                        item.localPosition = ParseV3(s);
+                    }
+                    else
+                    {
+                        item.position = ParseV3(s);
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -286,10 +305,13 @@ public class RectTransformEditorCopy : Editor
         }
         if (GUILayout.Button("Reset"))
         {
-            if (isLocal)
-                m_Transform.localPosition = Vector3.zero;
-            else
-                m_Transform.position = Vector3.zero;
+            foreach (var item in m_TransformList)
+            {
+                if (isLocal)
+                    item.localPosition = Vector3.zero;
+                else
+                    item.position = Vector3.zero;
+            }
         }
         EditorGUILayout.EndHorizontal();
     }
@@ -303,14 +325,15 @@ public class RectTransformEditorCopy : Editor
             var select = Selection.activeGameObject;
             if (select == null)
                 return;
-            StringBuilder s = new StringBuilder();
+            var rt = select.GetComponent<RectTransform>();
+            StringBuilder s = new();
             if (isLocal)
             {
-                s.Append(FormatVe3(m_Transform.localRotation.eulerAngles));
+                s.Append(FormatVe3(rt.localRotation.eulerAngles));
             }
             else
             {
-                s.Append(FormatVe3(m_Transform.rotation.eulerAngles));
+                s.Append(FormatVe3(rt.rotation.eulerAngles));
             }
             UnityEngine.GUIUtility.systemCopyBuffer = s.ToString();
         }
@@ -319,18 +342,21 @@ public class RectTransformEditorCopy : Editor
             string s = UnityEngine.GUIUtility.systemCopyBuffer;
             if (s == "")
             {
-                Debug.LogError("未复制Rotation内容！");
+                Debug.LogError("Data is not Rotation!");
                 return;
             }
             try
             {
-                if (isLocal)
+                foreach (var item in m_TransformList)
                 {
-                    m_Transform.localRotation = Quaternion.Euler(ParseV3(s));
-                }
-                else
-                {
-                    m_Transform.rotation = Quaternion.Euler(ParseV3(s));
+                    if (isLocal)
+                    {
+                        item.localRotation = Quaternion.Euler(ParseV3(s));
+                    }
+                    else
+                    {
+                        item.rotation = Quaternion.Euler(ParseV3(s));
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -341,10 +367,13 @@ public class RectTransformEditorCopy : Editor
         }
         if (GUILayout.Button("Reset"))
         {
-            if (isLocal)
-                m_Transform.localRotation = Quaternion.identity;
-            else
-                m_Transform.rotation = Quaternion.identity;
+            foreach (var item in m_TransformList)
+            {
+                if (isLocal)
+                    item.localRotation = Quaternion.identity;
+                else
+                    item.rotation = Quaternion.identity;
+            }
         }
         EditorGUILayout.EndHorizontal();
     }
@@ -358,8 +387,9 @@ public class RectTransformEditorCopy : Editor
             var select = Selection.activeGameObject;
             if (select == null)
                 return;
-            StringBuilder s = new StringBuilder();
-            s.Append(FormatVe3(m_Transform.localScale));
+            var rt = select.GetComponent<RectTransform>();
+            StringBuilder s = new();
+            s.Append(FormatVe3(rt.localScale));
             UnityEngine.GUIUtility.systemCopyBuffer = s.ToString();
         }
         if (GUILayout.Button("Paste"))
@@ -367,12 +397,15 @@ public class RectTransformEditorCopy : Editor
             string s = UnityEngine.GUIUtility.systemCopyBuffer;
             if (s == "")
             {
-                Debug.LogError("未复制Scale内容！");
+                Debug.LogError("Data is not Scale!");
                 return;
             }
             try
             {
-                m_Transform.localScale = ParseV3(s);
+                foreach (var item in m_TransformList)
+                {
+                    item.localScale = ParseV3(s);
+                }
             }
             catch (System.Exception ex)
             {
@@ -382,7 +415,10 @@ public class RectTransformEditorCopy : Editor
         }
         if (GUILayout.Button("Reset"))
         {
-            m_Transform.localScale = Vector3.one;
+            foreach (var item in m_TransformList)
+            {
+                item.localScale = Vector3.one;
+            }
         }
         EditorGUILayout.EndHorizontal();
     }

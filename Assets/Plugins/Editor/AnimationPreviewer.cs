@@ -30,6 +30,7 @@ public class AnimationPreviewer : EditorWindow
     private bool autoPlay = false;
     private float startTime = 0;
     private float length = 0f;
+    private Vector2 scrollPosition = Vector2.zero;
 
     void OnGUI()
     {
@@ -81,6 +82,10 @@ public class AnimationPreviewer : EditorWindow
         if (ClipsDict.Count == 0) return;
 
         EditorGUI.BeginChangeCheck();
+        // scroll rect
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+        // Your GUI elements here
+
         string preAnimName = string.Empty;
         foreach (var kvp in ClipsDict)
         {
@@ -131,6 +136,7 @@ public class AnimationPreviewer : EditorWindow
             }
             EditorGUILayout.EndHorizontal();
         }
+        EditorGUILayout.EndScrollView();
 
         m_FrameSlider = EditorGUILayout.IntSlider("Frame", m_FrameSlider, 0, maxFrameCount);
         EditorGUILayout.LabelField($"Frame Rate:{frameRate} 帧:{m_FrameSlider} 秒:{m_FrameSlider / (float)frameRate}", new[] { GUILayout.Height(20), GUILayout.Width(200) });

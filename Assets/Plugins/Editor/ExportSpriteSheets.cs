@@ -49,36 +49,26 @@ public class ExportSubSprites : Editor
 		return Selection.activeObject is Sprite || Selection.activeObject is Texture2D;
 	}
 
-	// Determine whether point P in triangle ABC
-	private static bool PointInTriangle(Vector2[] triangle, Vector2 P)
+	// Determine whether point P is inside an arbitrary polygon using the ray casting algorithm
+	private static bool PointInPolygon(Vector2[] polygon, Vector2 P)
 	{
-		Debug.Assert(triangle.Length == 3);
+		int n = polygon.Length;
+		if (n < 3) return false;
 
-		Vector2 v0 = triangle[2] - triangle[0];
-		Vector2 v1 = triangle[1] - triangle[0];
-		Vector2 v2 = P - triangle[0];
-
-		float dot00 = Vector2.Dot(v0, v0);
-		float dot01 = Vector2.Dot(v0, v1);
-		float dot02 = Vector2.Dot(v0, v2);
-		float dot11 = Vector2.Dot(v1, v1);
-		float dot12 = Vector2.Dot(v1, v2);
-
-		float inverDeno = 1 / (dot00 * dot11 - dot01 * dot01);
-
-		float u = (dot11 * dot02 - dot01 * dot12) * inverDeno;
-		if (u < 0 || u > 1) // if u out of range, return directly
+		bool inside = false;
+		for (int i = 0, j = n - 1; i < n; j = i++)
 		{
-			return false;
+			Vector2 vi = polygon[i];
+			Vector2 vj = polygon[j];
+
+			if (((vi.y > P.y) != (vj.y > P.y)) &&
+				(P.x < (vj.x - vi.x) * (P.y - vi.y) / (vj.y - vi.y) + vi.x))
+			{
+				inside = !inside;
+			}
 		}
 
-		float v = (dot00 * dot12 - dot01 * dot02) * inverDeno;
-		if (v < 0 || v > 1) // if v out of range, return directly
-		{
-			return false;
-		}
-
-		return u + v <= 1;
+		return inside;
 	}
 
 	// Since a sprite may exist anywhere on a tex2d, this will crop out the sprite's claimed region and return a new, cropped, tex2d.
@@ -216,7 +206,7 @@ public class ExportSubSprites : Editor
 					var isInside = false;
 					foreach (var o in normalizedOutline)
 					{
-						if (PointInTriangle(o, p))
+						if (PointInPolygon(o, p))
 						{
 							isInside = true;
 							break;

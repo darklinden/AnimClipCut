@@ -126,7 +126,26 @@ public class AnimClipExchangeWhiteSpace
 						var binding = bindings[ii];
 						var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
 						var path = binding.path;
-						path = path.Replace('_', ' ');
+
+						var pathSegments = path.Split('/');
+						for (int iii = 0; iii < pathSegments.Length; iii++)
+						{
+							if (pathSegments[iii].ToLower().StartsWith("bip"))
+							{
+								pathSegments[iii] = pathSegments[iii].Replace("_", " ");
+							}
+							else if (pathSegments[iii].ToLower().Contains("_mirrored_"))
+							{
+								var index = pathSegments[iii].ToLower().IndexOf("_mirrored_");
+								var mirroredStart = index;
+								var mirroredEnd = index + "_mirrored_".Length - 1;
+								var newSegment = pathSegments[iii][..mirroredStart] + "(" + pathSegments[iii][(mirroredStart + 1)..mirroredEnd] + ")" + pathSegments[iii][(mirroredEnd + 1)..];
+								Debug.Log($"{pathSegments[iii]} => {newSegment}");
+								pathSegments[iii] = newSegment;
+							}
+						}
+						path = string.Join("/", pathSegments);
+
 						desClip.SetCurve(path, binding.type, binding.propertyName, curve);
 					}
 				}

@@ -3,47 +3,59 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 
-public class AnimClipExchangeWhiteSpace {
+public class AnimClipExchangeWhiteSpace
+{
 
-	[MenuItem("Assets/AnimationClip Exchange White Space", false, 64)]
-	public static void ExchangeClipPathWhiteSpace() {
-
-		List<string> clipPaths = new List<string>();
-
-		do {
+	[MenuItem("Assets/AnimationClip Exchange White Space To Underline", false, 64)]
+	public static void ExchangeClipPathWhiteSpaceToUnderline()
+	{
+		List<string> clipPaths = new();
+		do
+		{
 			string[] assetGUIDArray = Selection.assetGUIDs;
 			if (assetGUIDArray.Length <= 0)
 				break;
 
-			for (int i = 0; i < assetGUIDArray.Length; i++) {
+			for (int i = 0; i < assetGUIDArray.Length; i++)
+			{
 				string assetPath = AssetDatabase.GUIDToAssetPath(assetGUIDArray[i]);
 
-				if (".anim" == Path.GetExtension(assetPath)) {
+				if (".anim" == Path.GetExtension(assetPath))
+				{
 					clipPaths.Add(assetPath);
 				}
 			}
 
-			clipPaths.Sort(delegate(string a, string b) {
+			clipPaths.Sort(delegate (string a, string b)
+			{
 				return string.Compare(a, b);
 			});
 
 		} while (false);
 
-		if (clipPaths.Count <= 0) {
+		if (clipPaths.Count <= 0)
+		{
 			EditorUtility.DisplayDialog("Error", "Please Select At Least One Animation Clips!", "Ok");
-		} else {
+		}
+		else
+		{
 
-			for (int i = 0; i < clipPaths.Count; i++) {
+			for (int i = 0; i < clipPaths.Count; i++)
+			{
 				var sourceClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPaths[i]);
 
-				var desClip = new AnimationClip();
-				desClip.legacy = sourceClip.legacy;
-				desClip.wrapMode = sourceClip.wrapMode;
-				desClip.frameRate = sourceClip.frameRate;
+				var desClip = new AnimationClip
+				{
+					legacy = sourceClip.legacy,
+					wrapMode = sourceClip.wrapMode,
+					frameRate = sourceClip.frameRate
+				};
 
 				var bindings = AnimationUtility.GetCurveBindings(sourceClip);
-				if (bindings != null && bindings.Length > 0) {
-					for (int ii = 0; ii < bindings.Length; ++ii) {
+				if (bindings != null && bindings.Length > 0)
+				{
+					for (int ii = 0; ii < bindings.Length; ++ii)
+					{
 						var binding = bindings[ii];
 						var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
 						var path = binding.path;
@@ -55,7 +67,72 @@ public class AnimClipExchangeWhiteSpace {
 				}
 
 				int stamp = (int)Time.realtimeSinceStartup;
-				string savepath = Path.Combine(Path.GetDirectoryName(clipPaths[i]), Path.GetFileNameWithoutExtension(clipPaths[i]) + "_Exchanged_" + stamp + ".anim");
+				string savepath = Path.Combine(Path.GetDirectoryName(clipPaths[i]), Path.GetFileNameWithoutExtension(clipPaths[i]) + "___" + stamp + ".anim");
+
+				AssetDatabase.CreateAsset(desClip, savepath);
+			}
+		}
+	}
+
+	[MenuItem("Assets/AnimationClip Exchange Underline To White Space", false, 64)]
+	public static void ExchangeClipPathUnderlineToWhiteSpace()
+	{
+		List<string> clipPaths = new();
+		do
+		{
+			string[] assetGUIDArray = Selection.assetGUIDs;
+			if (assetGUIDArray.Length <= 0)
+				break;
+
+			for (int i = 0; i < assetGUIDArray.Length; i++)
+			{
+				string assetPath = AssetDatabase.GUIDToAssetPath(assetGUIDArray[i]);
+
+				if (".anim" == Path.GetExtension(assetPath))
+				{
+					clipPaths.Add(assetPath);
+				}
+			}
+
+			clipPaths.Sort(delegate (string a, string b)
+			{
+				return string.Compare(a, b);
+			});
+
+		} while (false);
+
+		if (clipPaths.Count <= 0)
+		{
+			EditorUtility.DisplayDialog("Error", "Please Select At Least One Animation Clips!", "Ok");
+		}
+		else
+		{
+			for (int i = 0; i < clipPaths.Count; i++)
+			{
+				var sourceClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPaths[i]);
+
+				var desClip = new AnimationClip
+				{
+					legacy = sourceClip.legacy,
+					wrapMode = sourceClip.wrapMode,
+					frameRate = sourceClip.frameRate
+				};
+
+				var bindings = AnimationUtility.GetCurveBindings(sourceClip);
+				if (bindings != null && bindings.Length > 0)
+				{
+					for (int ii = 0; ii < bindings.Length; ++ii)
+					{
+						var binding = bindings[ii];
+						var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
+						var path = binding.path;
+						path = path.Replace('_', ' ');
+						desClip.SetCurve(path, binding.type, binding.propertyName, curve);
+					}
+				}
+
+				int stamp = (int)Time.realtimeSinceStartup;
+				string savepath = Path.Combine(Path.GetDirectoryName(clipPaths[i]), Path.GetFileNameWithoutExtension(clipPaths[i]) + "   " + stamp + ".anim");
 
 				AssetDatabase.CreateAsset(desClip, savepath);
 			}
